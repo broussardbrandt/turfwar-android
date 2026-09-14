@@ -1,0 +1,15 @@
+{
+	"appId": "com.jagneaux.mow",
+	"appName": "Turf War",
+	"webDir": "www",
+	"android": {
+		"allowMixedContent": false
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 600,
+			"backgroundColor": "#1E5631",
+			"showSpinner": false
+		}
+	}
+}
