@@ -1,5 +1,5 @@
 {
-  "appId": "com.jagneaux.mow",
+  "appId": "com.turfwar.mow",
   "appName": "Turf War",
   "webDir": "www",
   "android": { "allowMixedContent": false },
