@@ -1,0 +1,70 @@
+name: Build Turf War release bundle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Capacitor
+        run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Restore upload keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Add the KEYSTORE_B64 secret (see README) before building a release."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Copy the web app into the Android project
+        run: npx cap sync android
+
+      - name: Build signed AAB and APK
+        env:
+          KEYSTORE_FILE: upload-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace
+          cd ..
+          cp android/app/build/outputs/bundle/release/app-release.aab TurfWar.aab
+          cp android/app/build/outputs/apk/release/app-release.apk TurfWar.apk
+
+      - name: Publish the bundle
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: turfwar-${{ github.run_number }}
+          name: turfwar build ${{ github.run_number }}
+          files: |
+            TurfWar.aab
+            TurfWar.apk
+          make_latest: true
+
+      - name: Clean up the key
+        if: always()
+        run: rm -f android/app/upload-keystore.jks
